@@ -64,13 +64,6 @@ uint16 const LCD_DataAddrSheetsNum = sizeof(LCD_DataAddrSheets) / sizeof(LCD_DAT
 ** 获取当前页面ID参数
 */
 uint16 LCD_GetScreenID(void){
-// 	volatile uint8 temp = 0x67;
-// 	/*
-// 	** 测试代码
-// 	*/
-// 	if(lcdScreenGetCurId.id >= 10){
-// 		temp = 0;
-// 	}
 	return lcdScreenGetCurId.id;
 }
 
@@ -90,60 +83,6 @@ void LCD_GetScreenIdSet(uint8*pdata){
 	*pdata++ = lcdScreenIdSet.id;
 }
 
-// #if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// /*
-// ** 获取迪文屏当前ID
-// */
-// uint8* GetScreenCurId(void){
-// 	return ((uint8*)&lcdScreenGetCurId.id[0]);
-// }
-
-// /*
-// ** II代迪文屏地址变更
-// */
-// void DW_SecondScreenAddrAlteration(void *pPara,uint8 *Dst,uint8 *Src){
-// 	DP_FramePara *st_FramePara = (DP_FramePara *)pPara;
-// 	if(st_FramePara->iAddress == 0x0014)
-// 	{
-// 		memcpy(Dst,Src,sizeof(LCD_SCREENID));
-// 	}
-// }
-// #endif
-
-//#if DW_GENERATION_SCREEN == DW_ONE_SCREEN
-/*
-** 设置页面跳转参数
-*/
-// bool LCD_JumpScreen(void *pData, uint8 dev){
-// 	DP_FramePara *st_FramePara = (DP_FramePara *)pData;
-// 	
-// 	if (pData == null)
-// 		return false;
-// 	
-// 	st_FramePara->iAddress = 0x03;										
-// 	st_FramePara->ucFunCode = D_DP_CtrlWrite; 
-// 	st_FramePara->ucRegLen = 2;
-// 	LCD_GetScreenIdSet(st_FramePara->ucDataSpace);
-
-// 	return true;
-// }
-
-// /*
-// ** 获取当前页面ID
-// */
-// bool LCD_ReadScreenID(void *pData, uint8 dev){
-// 	DP_FramePara *st_FramePara = (DP_FramePara *)pData;
-// 	
-// 	if(pData == null)
-// 		return false;
-// 	
-// 	st_FramePara->iAddress = 0x03;
-// 	st_FramePara->ucFunCode = D_DP_CtrlRead; 
-// 	st_FramePara->ucRegLen = 2;
-
-// 	return true;
-// }
-// #elif DW_GENERATION_SCREEN == DW_SECOND_SCREEN
 /*
 ** 页面跳转设置参数之填充字段项
 */
@@ -185,34 +124,6 @@ bool LCD_ReadScreenID(void *pData, uint8 dev){
 
 	return true;
 }
-//#endif
-
-// /*
-// ** 写主页面系统参数
-// */
-// bool lcd_WriteMainSysPara(void *pData,uint8 dev){
-// 	DP_FramePara *st_FramePara = (DP_FramePara *)pData;
-// 	uint16 temp = 2344;
-// 	char c[5] = {0};
-// 	char ch[] = "线";
-// 	char chh[] = "线国";
-
-// 	if(pData == null){
-// 		return false;
-// 	}
-
-// 	st_FramePara->iAddress = 0x0001;
-// 	st_FramePara->ucFunCode = D_DP_DataWirte;
-// 	st_FramePara->ucRegLen = 3;
-
-// 	strAddRate(temp, (char *)&c[0], 100);
-
-// 	memcpy((uint8*)&st_FramePara->ucDataSpace[0],(uint8*)&c[0],5);
-
-// 	//memcpy((uint8*)&st_FramePara->ucDataSpace[0],(uint8*)&chh[0],4);
-// 	
-// 	return true;
-// }
 
 /*
 ** 专项解决迪文屏显示问题

@@ -9,7 +9,7 @@
 /*
 ** 广播升级最大次数
 */
-#define BroadCast_UgpradeMaxCnt							(uint8)0x03
+#define BroadCast_UgpradeMaxCnt							(uint8)0x04/*应美团需求:重试3次定义为最终需要发送4次*/
 
 /*
 ** 帧数最大数
@@ -54,7 +54,7 @@ typedef struct{
 	DoorNumDefine upgradePermit;/*置1允许升级 清0拒绝升级*///注明:暂时标志areaFlag/upgradePermit具有一致性 仅存在时间差200MS
 	DoorNumDefine fileByteCrcRecFlag;/*置1表示文件字节数+文件内容校验接收回复帧*/
 	DoorNumDefine binDataItemTransmit;/*置1表示开始数据传输*/
-	DoorNumDefine binDataItemEndFlag;/*置1表示结束结束传输*/
+	DoorNumDefine binDataItemEndFlag;/*置1表示结束结束传输--20210226--用于设置安卓统计成功和失败次数*/
 	DoorNumDefine fileItemRecFlag;/*置1--内容帧接收完成*/
 }ProcCtr;
 

@@ -42,15 +42,23 @@
 #include "can_2.h"
 #include "canFilterDesign.h"
 
+/*-----------------接口切换---------------------------*/
+#include "interface_SW.h"
+/*----------------------------------------------------*/
+
 #include "main.h"
 #include "app_cfg.h"
 #include "calcPhaseVolCur.h"
 #include "phaseVCLimitAnalyze.h"
 #include "ctrGetUpgrFilePara.h"
 #include "upgradeFlashAddrAllot.h"
+/*新增:20210202--修改EEPROM存储方式*/
+#include "modifyEepromLogic.h"
 #include "upgrEepromAddr.h"
 #include "comBoardUpgradeParam.h"
 #include "seqQueue.h"
+#include "fifoQueue.h"
+#include "upgrFailReson.h"
 #include "cabinetCtrInfo.h"
 #include "upperlayer.h"
 #include "upgradeUL.h"

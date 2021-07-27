@@ -35,7 +35,7 @@ void UpgradeLLParse_ChkComRunArea(uint8 len,uint8* item,uint8 addr){
 }
 
 /*
-** 升级之升级文件版本号
+** 升级之升级文件版本号 -- 0xF1
 */
 void UpgradeLLParse_FileVer(uint8 len,uint8* item,uint8 addr){
 	uint8 rxlen = 0;
@@ -58,13 +58,13 @@ void UpgradeLLParse_FileVer(uint8 len,uint8* item,uint8 addr){
 }
 
 /*
-** 升级之文件字节数+文件内容校验
+** 升级之文件字节数+文件内容校验 -- 0xF2
 */
 void UpgradeLLParse_FileByteItemCrc(uint8 len,uint8* item,uint8 addr){
 	uint8 rxlen = 0;
 	/*20210221--规避分控,发送完检验失败之后,还会响应F2--字段:0x02*/
 	static DoorNumDefine sub_ChkFailFlag = 0;
-
+	
 	/*
 	** 更新帧接收标志
 	*/
@@ -88,7 +88,7 @@ void UpgradeLLParse_FileByteItemCrc(uint8 len,uint8* item,uint8 addr){
 			*/
 			upgradeLLParam.proCtr.binDataItemEndFlag |= (DoorNumDefine)((DoorNumDefine)1<<addr);
 			/*规避:分控在校验失败之后会回复F2--0x02字段*/
-			upgradeLLParam.proCtr.binDataItemEndFlag &= (DoorNumDefine)(~sub_ChkFailFlag);
+			upgradeLLParam.proCtr.binDataItemEndFlag &= (DoorNumDefine)(~sub_ChkFailFlag);			
 			break;
 		case 0xF6:/*更新App软件版本号失败*/
 		case 0xF7:/*更新App区编码失败*/
@@ -104,19 +104,20 @@ void UpgradeLLParse_FileByteItemCrc(uint8 len,uint8* item,uint8 addr){
 	}
 
 	/*
-	** 对比进入bootloader标志位与接收标志位等同时进入下一流程
+	** 对比进入bootloader标志位与接收标志位等同时进入下一流程--修改时间:20210226--需要连续查询3S确保一次置位"开始升级标志"-->屏蔽下述检测直接跳转条件
 	*/
-	if(upgradeLLParam.proCtr.areaFlag == upgradeLLParam.proCtr.fileByteCrcRecFlag
-		&& upgradeLLParam.fileByteItemCrc.cmd == 0x01){/*在开始传输数据时才进入内容传输流程*/
-		upgradeLLParam.proCtr.step = UpgradeLL_Proc_DataItemTra;
-		/*
-		** 升级之更新升级文件内容参数
-		*/
-		Upgrade_UpdateFileItemPara(1);			
-	}
+	//if(upgradeLLParam.proCtr.areaFlag == upgradeLLParam.proCtr.fileByteCrcRecFlag
+	//	&& upgradeLLParam.fileByteItemCrc.cmd == 0x01){/*在开始传输数据时才进入内容传输流程*/
+	//	upgradeLLParam.proCtr.step = UpgradeLL_Proc_DataItemTra;
+	//	/*
+	//	** 升级之更新升级文件内容参数
+	//	*/
+	//	Upgrade_UpdateFileItemPara(1);			
+	//}
 
 	/*
-	** 对比进入数据更新项地址和结束更新项地址一致性
+	** 对比进入数据更新项地址和结束更新项地址一致性--20210226中途退出的由于标志位:binDataItemTransmi并未清除,等待3S之后查询所有的数据后从查询内进入结束流程
+	** 为中途退出的:从此处进入结束流程
 	*/
 	if(upgradeLLParam.proCtr.binDataItemTransmit == upgradeLLParam.proCtr.binDataItemEndFlag
 		&& upgradeLLParam.fileByteItemCrc.cmd == 0x02){/*结束数据帧传输*/
@@ -125,7 +126,7 @@ void UpgradeLLParse_FileByteItemCrc(uint8 len,uint8* item,uint8 addr){
 }
 
 /*
-** 升级之文件内容
+** 升级之文件内容--F3
 */
 void UpgradeLLParse_FileItem(uint8 len,uint8* item,uint8 addr){
 	uint8 rxlen = 0;
@@ -133,7 +134,7 @@ void UpgradeLLParse_FileItem(uint8 len,uint8* item,uint8 addr){
 	volatile uint8 byteNum = 0;
 	uint8 replyAnalysis = 0;
 	static bool recFlag = true;
-
+	/*------------------20210226目前采取的方案是:整个进入文件内容下载(F3)环节,分控不再响应-------------*/
 	/*
 	** 帧标识 帧数据内容字节数 回复分析
 	*/
@@ -175,85 +176,29 @@ void UpgradeLLParse_FileItem(uint8 len,uint8* item,uint8 addr){
 					*/
 					upgradeLLParam.fileByteItemCrc.cmd = 0x02;/*结束数据传输*/
 					/*清结束传输定时器--分控可能最后一包未接收成功--修改时间:20210222--上午11:01*/
-					TickOut((uint32 *)&upgradeLLParam.fileByteItemCrc.itick, 0);					
+					TickOut((uint32 *)&upgradeLLParam.fileByteItemCrc.itick, 0);
 				}
 			}
 			break;
 		case 0x02:/*流程异常(未成功接收功能0xF2相关)*/			
 		case 0x03:/*帧标识异常(备注:帧跨越)*/
 		case 0x04:/*写Flash异常*/
-			upgradeLLParam.proCtr.fileItemRecFlag &= ~(DoorNumDefine)((DoorNumDefine)1<<addr);
+			upgradeLLParam.proCtr.fileItemRecFlag &= ~(DoorNumDefine)((DoorNumDefine)1<<addr);	
 			UpgradeLL_AssignCanelUpgrade(addr);
 			break;			
 	}
 }
 
-// /*
-// ** 下层协议之系统模块处理列表结构体声明
-// */
-// extern void LLParse_UpdateSoftVer(uint8 rxlen,uint8* item,uint8 addr);
-// static const UpgradeParseFunTable upgradeParseFunTable[] = {
-// 	{UpgradeLL_FunId_RunArea,UpgradeLLParse_ChkComRunArea},
-// 	{UpgradeLL_FunId_Ver,UpgradeLLParse_FileVer},
-// 	{UpgradeLL_FunId_FileByteCrc,UpgradeLLParse_FileByteItemCrc},
-// 	{UpgradeLL_FunId_FileItem,UpgradeLLParse_FileItem},
-// 	{UpgradeLL_FunId_ChkAppRunVer,LLParse_UpdateSoftVer},
-// };
-// static uint8 upgradeParseFunTableNum = sizeof(upgradeParseFunTable)/sizeof(UpgradeParseFunTable);
-
 /*
 ** 提供系统软件之远程升级接口任务之下层协议之解析函数
 */
 void SM_UpgradeLLParse_Task(void* p_arg){
-// 	CanRxMsg rxMsg = {0};
-// 	uint8 funId = 0;
-// 	uint8 i=0;
-// 	uint8 deviceAddr = 0;
-
 	/*
 	** 系统复位延时6S,防止任务先启动,导致通讯板程序进入Bootloader区
 	*/
 	Sleep(6000);
 	
 	for(;;){
-// 		for(;CAN_RecAnalysis(CAN_Port_1, (CanRxMsg *)&rxMsg) == true;){
-// 			funId = (uint8)((rxMsg.ExtId>>16)&0x000000FF);
-// 			for(i=0;i<upgradeParseFunTableNum;i++){
-// 				if(funId == upgradeParseFunTable[i].funId){
-// 					deviceAddr = (uint8)(rxMsg.ExtId&0x000000FF);
-// 					upgradeParseFunTable[i].handle(rxMsg.DLC,(uint8*)&rxMsg.Data[0],deviceAddr);
-// 					/*
-// 					** 通讯小板在线标志
-// 					*/
-// 					upgradeLLParam.proCtr.onLine |= (DoorNumDefine)((DoorNumDefine)1<<deviceAddr);
-// 					break;
-// 				}
-// 			}
-// 			/*
-// 			** 更新看门狗寄存器--喂狗
-// 			*/
-// 			watchdogUpdate();
-// 		}
-
-// 		for(;CAN_RecAnalysis(CAN_Port_2, (CanRxMsg *)&rxMsg) == true;){
-// 			funId = (uint8)((rxMsg.ExtId>>16)&0x000000FF);
-// 			for(i=0;i<upgradeParseFunTableNum;i++){
-// 				if(funId == upgradeParseFunTable[i].funId){
-// 					deviceAddr = (uint8)(rxMsg.ExtId&0x000000FF);
-// 					upgradeParseFunTable[i].handle(rxMsg.DLC,(uint8*)&rxMsg.Data[0],deviceAddr);
-// 					/*
-// 					** 通讯小板在线标志
-// 					*/
-// 					upgradeLLParam.proCtr.onLine |= (DoorNumDefine)((DoorNumDefine)1<<deviceAddr);
-// 					break;
-// 				}
-// 			}
-// 			/*
-// 			** 更新看门狗寄存器--喂狗
-// 			*/
-// 			watchdogUpdate();
-// 		}
-
 		/*
 		** 下层协议之数据解析之任务函数处理
 		*/

@@ -229,7 +229,7 @@ uint8 FMWrite(uint8 *writedata, uint32 addr, uint16 num)
 	}
 	for(i = 0; i < num; i++)
 	{
-		I2C_SendByte(*writedata);	//·¢ËÍ¶ÁÃüÁî
+		I2C_SendByte(*writedata);
 		writedata++;
 		if(!I2C_WaitAck())
 		{

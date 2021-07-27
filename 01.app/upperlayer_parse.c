@@ -93,8 +93,8 @@ bool ChkFrameDataLenIsOk(uint16 frameLen){
 
 	if(frameLen>=FrameLenIsLegal_Min && frameLen<=FrameLenIsLegal_Max){
 		ret = true;
+		
 	}
-	
 	return ret;
 }
 
@@ -233,8 +233,30 @@ static const CabinetCtrInfo cabinetCtrInfoFunTable[] = {
 	{CabCtrInfo_EventId_ChkLvAd,cabCtrInfo_EventId_ChkPhaseLvVoltAD},
 	{CabCtrInfo_EventId_ChkHvAd,cabCtrInfo_EventId_ChkPhaseHvVoltAD},
 	{CabCtrInfo_EventId_SetPAdjust,cabCtrInfo_EventId_SetPhaseAjust},
-	{CabCtrInfo_EventId_GetRuntimeV,cabCtrInfo_EventId_GetRuntimeVolt}
+	{CabCtrInfo_EventId_GetRuntimeV,cabCtrInfo_EventId_GetRuntimeVolt},
 	/*-----------------------------------------------------------------------------------------------------------------------------------*/
+	{CabCtrInfo_EventId_CfgFireUpgrN,cabCtrInfo_EventId_CfgFireUpgrNum},
+	{CabCtrInfo_EventId_ClearFire,cabCtrInfo_EventId_ClearFire},
+	{CabCtrInfo_EventId_UpgrFailR,cabCtrInfo_EventId_UpgrFailReson},
+	{CabCtrInfo_EventId_FireEnterT,cabCtrInfo_EventId_FireEnterTestModel},
+	{CabCtrInfo_EventId_ChkRealityN,cabCtrInfo_EventId_ChkRealityUpgrNum},
+	{CabCtrInfo_EventId_TestMUpgrNum,cabCtrInfo_EventId_TestModelFireUpgrNum},
+	{CabCtrInfo_EventId_ChargerOCL,cabCtrInfo_EventId_ChargerOCLimitCfg},
+	/*---------------------------------------------------------清除固件------------------------------------------------------------------*/
+	{CabCtrInfo_EventId_OneClearAllFire,cabCtrInfo_EventId_OneKeyClearFire},
+	/*-----------------------------------------------------------------------------------------------------------------------------------*/
+	/*----------------------------美团充电柜-第三方交互方案--后端接口(外部输出)-1.05-----------------------------------------------------*/
+	{CabCtrInfo_EventId_BatOTempLimit,cabCtrInfo_EventId_SetBatOTempLimit},
+	{cabCtrInfo_EventId_NanduLowPLimit,cabCtrInfo_EventId_SetNanduLowPLimit},
+	{CabCtrInfo_EventId_BatLowPLimit,cabCtrInfo_EventId_SetBatLowPLimit},
+	/*-----------------------------------------------------------------------------------------------------------------------------------*/
+	/*-------------------------------------------硬件接口切换-----------------------------------------------------------------------------*/
+	{CabCtrInfo_EventId_SetInterfaceSw,cabCtrInfo_EventId_Set_Interface_Sw},
+	/*------------------------------------------------------------------------------------------------------------------------------------*/
+	/*--------------------------------------------------------电池接入SOC----------------------------------------------------------------*/
+	{CabCtrInfo_EventId_ChkAllInsSoc,cabCtrInfo_EventId_ChkAllInsertSoc},
+	/*-----------------------------------------------------------------------------------------------------------------------------------*/
+	{CabCtrInfo_PhaseVCDebugMode,cabCtrInfo_EventId_PhaseCurOpenFlag}
 };
 static uint8 cabinetCtrInfoFunTableNum = sizeof(cabinetCtrInfoFunTable)/sizeof(CabinetCtrInfo);
 
@@ -410,10 +432,13 @@ void ParseUpperLayerFrame(uint8* rxbuf,uint16* rxlen){
 }
 
 void SM_UpperLayerParse_Task(void* p_arg){
-	uint8 ucRxBuf[1024];
+	/*修改:*/
+	uint8 ucRxBuf[sizeof(uint16)*(1024+sizeof(UpgradeProFrame))/*1024*/];
 	uint8 *rxptr;
 	uint16 ucLen = 0;
 	uint16 ucRecvLen = 0;
+	/*更新上层协议硬件接口标号*/
+	uint8 interface_Label = get_Interface().label;
 
 	/*
 	** 初始化上层协议变量
@@ -424,7 +449,7 @@ void SM_UpperLayerParse_Task(void* p_arg){
 
 	for(;;){
 		ucRecvLen = 0;
-		BSP_SmRecv(BSP_ComType_USART,BSP_ComUpperLayer,ucRxBuf + ucLen,&ucRecvLen);
+		BSP_SmRecv(BSP_ComType_USART,interface_Label,ucRxBuf + ucLen,&ucRecvLen);
 		ucLen += ucRecvLen;
 		if(ucLen >( sizeof(ucRxBuf)))
 		{
@@ -456,6 +481,17 @@ void SM_UpperLayerParse_Task(void* p_arg){
 		*/
 		enterCtrBootLoader();
 
+		/*------------------------------------硬件接口实时检测-------------------------------------------------------*/
+		/*
+		** chk Interface Sw Logic
+		*/
+		 chk_Interface_SwLogic();		
+		/*-----------------------------------------------------------------------------------------------------------*/
+		/*
+		** 20210518--检测是否存在升级原因未读取
+		*/
+		runtimeChk_UpgrResonFlag();
+		
 		/*
 		** 更新看门狗寄存器--喂狗
 		*/

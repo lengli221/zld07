@@ -26,6 +26,21 @@ static void LowerLayerReplyParam_Init(void){
 }
 
 /*
+** state Chk Not download File
+*/
+bool stateChkNotDownloadFile(uint8 deviceAddr){
+	bool ret = false;
+
+	if((llR_ULP->stateInfoChange.sysLogic.comUpgr&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0/*分控升级未处于中*/
+		&& (llR_ULP->stateInfoChange.sysLogic.batFileDownload&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0/*电池文件下载未处于中*/
+		){
+		ret = true;
+	}
+
+	return ret;
+}
+
+/*
 ** 下层协议之回复之查询电池信息
 */
 void LLReply_ChkBatStateInfo(uint8 cmd,uint8* len,uint8* item){
@@ -73,18 +88,31 @@ void LLReplay_PollingChkBatStateInfo(void){
 	uint8 len = 0;
 	uint8 tx[8] = {0};
 
-	if((llR_ULP->stateInfoChange.sysLogic.comUpgr&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0
-		&& (llR_ULP->stateInfoChange.sysLogic.batFileDownload&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0){		
+	if(stateChkNotDownloadFile(deviceAddr) == true){		
 		LLReply_ChkBatStateInfo(0x00,(uint8 *)&len, (uint8 *)&tx[0]);
 		CAN_TransmitAnalysis(CAN_Port_1, len, (uint8 *)&tx[0], deviceAddr, LL_FunId_BatDoorState);
 	}
 	
 	llParam.comBoardChk[deviceAddr].cnt++;
-	if((TickOut((uint32 *)&llParam.comBoardChk[deviceAddr].itick, 60000) == true) && llParam.comBoardChk[deviceAddr].cnt >= LLParse_FrameCntMax){
+	if((TickOut((uint32 *)&llParam.comBoardChk[deviceAddr].itick, 60000) == true) &&llParam.comBoardChk[deviceAddr].cnt >= LLParse_FrameCntMax){
 		llParam.comBoardChk[deviceAddr].cnt = LLParse_FrameCntMax;
-		if((llR_ULP->stateInfoChange.sysLogic.comUpgr&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0
-			&& (llR_ULP->stateInfoChange.sysLogic.batFileDownload&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0){
-			llParam.comBoardChk[deviceAddr].comAbn = true;/*通讯板丢失*/
+		if((llR_ULP->stateInfoChange.sysLogic.comUpgr&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0/*分控升级未处于中*/
+			/*stateChkNotDownloadFile(deviceAddr) == true*/
+			){/*20210226--屏蔽原因:充电柜信息-->0x03--交叉查询,在升级和下载固件的同时也会查询状态--说明:由于分控在boot区未回复FunId = 0x03字段*/
+				llParam.comBoardChk[deviceAddr].comAbn = true;/*通讯板丢失*/
+				/*20210226--分控失联强制结束升级状态和下载文件状态*/
+				/*优化李工语音播报:20210227*/
+				llR_ULP->stateInfoChange.sysLogic.comUpgr &= ~(DoorNumDefine)((DoorNumDefine)1<<deviceAddr);
+				llR_ULP->stateInfoChange.sysLogic.comUpgrIsOk &= ~(DoorNumDefine)((DoorNumDefine)1<<deviceAddr);
+				llR_ULP->stateInfoChange.sysLogic.batFileDownload &= ~(DoorNumDefine)((DoorNumDefine)1<<deviceAddr);	
+				llR_ULP->stateInfoChange.sysLogic.batFileDownloadIsOk &= ~(DoorNumDefine)((DoorNumDefine)1<<deviceAddr);	
+				/*20210227--充电器升级和电池升级清除标志*/
+				llR_ULP->stateInfoChange.sysLogic.batUpgr &= ~(DoorNumDefine)((DoorNumDefine)1<<deviceAddr);	
+				llR_ULP->stateInfoChange.sysLogic.batUpgrIsOk &= ~(DoorNumDefine)((DoorNumDefine)1<<deviceAddr);					
+		}else{/*分控升级中不判断失联*/
+			TickOut((uint32 *)&llParam.comBoardChk[deviceAddr].itick, 0);
+			llParam.comBoardChk[deviceAddr].cnt = 0;
+			llParam.comBoardChk[deviceAddr].comAbn = false;
 		}
 	}
 	
@@ -95,17 +123,50 @@ void LLReplay_PollingChkBatStateInfo(void){
 }
 
 /*
+** fill Chg Sys Info
+*/
+void fill_ChgSysInfo(uint8* item,uint8* len){
+	uint8 txlen = 0;
+	
+	/*整柜分控存在一级故障*/
+	if(chk_IsExitBatChargerOT() == true){
+		item[txlen] |= 0x01; 
+	}
+	txlen += sizeof(uint8);
+
+	/*充电电流配置*/
+	item[txlen] = get_ChargerOCLimit();
+	txlen += sizeof(uint8);
+
+	/*电池过温阈值*/
+	item[txlen] = get_BatOTempLimit();
+	txlen += sizeof(uint8);
+
+	/*南都低温保护*/
+	item[txlen] = get_NanduLowPLimit();
+	txlen += sizeof(uint8);
+
+	/*电池低温保护*/
+	item[txlen] = get_BatLowPLimit();
+	txlen += sizeof(uint8);
+
+	/*数据项*/
+	*len = txlen;
+}
+
+/*
 ** 下层协议之查询充电仓系统信息
 */
 void LLReply_ChkChgSysInfo(void){
 	static uint8 deviceAddr = 0;
-	uint8 len = 1;
+	uint8 len = 0;
 	uint8 tx[8] = {0};
 
-	if((llR_ULP->stateInfoChange.sysLogic.comUpgr&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0
-		&& (llR_ULP->stateInfoChange.sysLogic.batFileDownload&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0){
+	//if(stateChkNotDownloadFile(deviceAddr) == true){
+		/*fill Chg Sys Info*/		
+		fill_ChgSysInfo((uint8 *)&tx[0], (uint8 *)&len);
 		CAN_TransmitAnalysis(CAN_Port_1, len, (uint8 *)&tx[0], deviceAddr, LL_FunId_ChgSysInfo);
-	}
+	//}
 	deviceAddr++;
 	if(deviceAddr == SysCtr_AllDoorNum){
 		deviceAddr = 0;
@@ -124,8 +185,7 @@ void LLReply_ChkBmsInfo(void){
 	for(i=deviceAddr;i<SysCtr_AllDoorNum;i++){
 		if(llParam.batDoor[i].batDoorStateInfo.bits.batOnline == true){
 			deviceAddr = i;
-			if((llR_ULP->stateInfoChange.sysLogic.comUpgr&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0
-				&& (llR_ULP->stateInfoChange.sysLogic.batFileDownload&((DoorNumDefine)(((DoorNumDefine)0x01)<<deviceAddr))) == (DoorNumDefine)0){
+			if(stateChkNotDownloadFile(deviceAddr) == true){
 				CAN_TransmitAnalysis(CAN_Port_1, len, (uint8 *)&tx[0], deviceAddr, LL_FunId_BmsInfo);
 			}
 			break;
@@ -146,6 +206,7 @@ void LLReply_ChkBmsInfo(void){
 **			true->不一致-->进入升级流程
 **			false->一致
 */
+extern bool oneWaringResetSetFlag;
 bool powerOn_ChkVer(uint8 label){
 	uint8 i = 0;
 	uint16 binFileVer = 0;
@@ -161,9 +222,11 @@ bool powerOn_ChkVer(uint8 label){
 	
 	for(i=0;i<SysCtr_AllDoorNum;i++){
 		/*新增:仅支持未处于一级报警情况下,升级分控,和下载温控文件*/
-		if(oneWaring_ForbidUpgrDownFile() == false){
+		if(oneWaring_ForbidUpgrDownFile() == false && llR_ULP->stateInfoChange.sysModuleStateInfo_2.bits.hardSwitchClose == false/*无一级报警且开关合上*/
+			&& oneWaringResetSetFlag == false/*20210302一级告警已发生,下电恢复之后才能重新下开始判定是否升级*/){
 			if(llParam.comBoardChk[i].comAbn == false){/*通讯板在线*/
-				if(binFileVer != llR_SysPara->newSoftVer.comApp[i]/*binFileVer > llR_SysPara->newSoftVer.comApp[i]*/&& binFileVer != 0){
+				if(binFileVer != llR_SysPara->newSoftVer.comApp[i]/*binFileVer > llR_SysPara->newSoftVer.comApp[i]*/&& binFileVer != 0
+					&& llR_SysPara->newSoftVer.upgrFailNumAcc[i] != 0xFFFF/*相应分控板对应固件升级失败次数未达到3次以上*/){
 					ret = true;
 					break;
 				}	
@@ -177,9 +240,35 @@ bool powerOn_ChkVer(uint8 label){
 ** update Com Bat Soft Version
 */
 void update_ComBatSoftVer(uint8* len, uint8 *item,uint8 label){
-	item[0] = label;
+	uint8 txlen = 0;
+	/*
+	** 查询通讯板App版本号,查询指定电池包版本信息
+	*/
+	item[txlen] = label;
+	txlen += sizeof(uint8);
+	
+	/*清除对应固件*/
+	item[txlen] = 0;
+	if(label >= 1 && label < (get_batFireSize() + 1)){/*清除指定电池固件包*/
+		if(get_ClearFire(0x03, label - 1) == true){
+			item[txlen] = 0xFE;
+		}
+	}
+	txlen += sizeof(uint8);
 
-	*len = 0x01;
+	/*对应固件是否进入测试模式*/
+	item[txlen] = 0;
+	if(label >= 1 && label < (get_batFireSize() + 1)){/*电池固件*/
+		if(get_FireEnterTestModel(0x03, label - 1) == true){
+			item[txlen] = 0xEE;
+		}
+	}
+	txlen += sizeof(uint8);
+
+	/*
+	** 数据项长度
+	*/
+	*len = txlen;
 }
 
 /*
@@ -237,6 +326,7 @@ void chkComAppVer_BC(void){
 void SM_LowerLayerReply_Task(void* p_arg){
 	static uint32 itick = 0;
 	static uint32 itick1 = 0;
+	static uint32 itick2 = 0;
 	ComBup comCurBupTemp = {0}; 
 	/*
 	** 下层协议之参数初始化
@@ -261,11 +351,12 @@ void SM_LowerLayerReply_Task(void* p_arg){
 			** 下层协议之轮询查询电池信息
 			*/
 			LLReplay_PollingChkBatStateInfo();
-			/*
-			** 下层协议之查询充电仓系统信息
-			*/
-			LLReply_ChkChgSysInfo();	
-	
+		}
+
+		if(TickOut((uint32 *)&itick2, 50) == true){
+			TickOut((uint32 *)&itick2, 0);
+			/*查询--充电仓信息:ID-->0x03*/
+			LLReply_ChkChgSysInfo();
 		}
 
 		if(TickOut((uint32 *)&itick1, 100/*200*/) == true){/*邮箱发送时间2ms*/

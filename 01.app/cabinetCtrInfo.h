@@ -94,6 +94,41 @@ void cabCtrInfo_EventId_ChkSocLimit(uint8 itemDatalen,uint8* rx,
 */
 void cabCtrInfo_EventId_ChkRunComVer(uint8 itemDatalen,uint8* rx,
 	uint8* replyItemDataLen,uint8* tx);
+/*
+** 配置相应固件包升级次数
+*/
+void cabCtrInfo_EventId_CfgFireUpgrNum(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*
+** 回复清除相应固件包
+*/
+void cabCtrInfo_EventId_ClearFire(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*
+** 对应仓固件升级失败原因上报
+*/
+void cabCtrInfo_EventId_UpgrFailReson(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*
+** 固件测试模式
+*/
+void cabCtrInfo_EventId_FireEnterTestModel(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*
+** 在限制固件升级次数的情况下,查询实际升级的次数
+*/
+void cabCtrInfo_EventId_ChkRealityUpgrNum(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*
+** 测试模式下,电池或充电器升级次数
+*/
+void cabCtrInfo_EventId_TestModelFireUpgrNum(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*
+** Charger OC Limit Cfg
+*/
+void cabCtrInfo_EventId_ChargerOCLimitCfg(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
 /*-------------------------------------------三相电压校准值--------------------------------------------------------------------------*/
 /*
 ** 查询低压侧AD采样值
@@ -116,5 +151,46 @@ void cabCtrInfo_EventId_SetPhaseAjust(uint8 itemDatalen,uint8* rx,
 void cabCtrInfo_EventId_GetRuntimeVolt(uint8 itemDatalen,uint8* rx,
 	uint8* replyItemDataLen,uint8* tx);
 /*-----------------------------------------------------------------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------清除固件------------------------------------------------------------------*/
+/*
+** 一键清除--分控/电池/充电器
+*/
+void cabCtrInfo_EventId_OneKeyClearFire(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*-----------------------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------美团充电柜-第三方交互方案--后端接口(外部输出)-1.05-----------------------------------------------------*/
+/*
+** 设置过温保护阈值
+*/
+void cabCtrInfo_EventId_SetBatOTempLimit(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*
+** 设置南都低温保护阈值
+*/
+void cabCtrInfo_EventId_SetNanduLowPLimit(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*
+** 设置低温保护阈值
+*/
+void cabCtrInfo_EventId_SetBatLowPLimit(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*-----------------------------------------------------------------------------------------------------------------------------------*/
+
+/*-------------------------------------------硬件接口切换-----------------------------------------------------------------------------*/
+void cabCtrInfo_EventId_Set_Interface_Sw(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------电池接入SOC----------------------------------------------------------------*/
+void cabCtrInfo_EventId_ChkAllInsertSoc(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*-----------------------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------------------三相电流检测标志---------------------------------------------------*/
+void cabCtrInfo_EventId_PhaseCurOpenFlag(uint8 itemDatalen,uint8* rx,
+	uint8* replyItemDataLen,uint8* tx);
+/*-----------------------------------------------------------------------------------------------------------------------------------*/
+
 #endif
 

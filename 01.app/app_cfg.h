@@ -44,18 +44,11 @@
 #define VerCtr_TestFrock									0x01/*测试工装*/
 #define VerCtr_Normal										0x02/*正式出货版本*/
 #define VerCtr													VerCtr_Normal	
-												
-///*
-//** 迪文屏版本控制
-//** 1.I代迪文屏
-//** 2.II代迪文屏
-//*/
-//#define DW_ONE_SCREEN									0x01
-//#define DW_SECOND_SCREEN								0x02
 
-//#define DW_GENERATION_SCREEN						DW_SECOND_SCREEN
-
-#define Debug_Flash_BugAnalysis  					0
+/*
+** 系统硬件测试
+*/												
+#define Debug_Flash_BugAnalysis  							0
 
 /*
 **任务优先级别处理

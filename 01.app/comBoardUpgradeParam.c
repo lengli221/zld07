@@ -22,7 +22,7 @@ void ComBoardUpgrPara_Init(void){
 ** 清除当前通讯升级任务参数
 */
 void Clear_CurComBupPara(void){
-	memset((uint8*)&curComBup.binFileType.flag,0x00,sizeof(ComBup));
+	memset((uint8*)&curComBup.upgradeWay,0x00,sizeof(ComBup));
 	/*
 	** 清除升级计数次数
 	*/	

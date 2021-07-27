@@ -47,7 +47,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>.\project\keil\output\</OutputDirectory>
-          <OutputName>CDG_MD_B_B1_200_367</OutputName>
+          <OutputName>CDG_MD_B_B1_200_386</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
@@ -661,6 +661,36 @@
               <FileType>5</FileType>
               <FilePath>..\01.app\lower_Upgr_Analyze.h</FilePath>
             </File>
+            <File>
+              <FileName>modifyEepromLogic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\01.app\modifyEepromLogic.c</FilePath>
+            </File>
+            <File>
+              <FileName>modifyEepromLogic.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\01.app\modifyEepromLogic.h</FilePath>
+            </File>
+            <File>
+              <FileName>upgrFailReson.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\01.app\upgrFailReson.c</FilePath>
+            </File>
+            <File>
+              <FileName>upgrFailReson.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\01.app\upgrFailReson.h</FilePath>
+            </File>
+            <File>
+              <FileName>interface_SW.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\01.app\interface_SW.h</FilePath>
+            </File>
+            <File>
+              <FileName>interface_SW.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\01.app\interface_SW.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -710,6 +740,16 @@
               <FileName>fileopt.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\02.cmm\03.fileOperate\fileopt.h</FilePath>
+            </File>
+            <File>
+              <FileName>fifoQueue.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\02.cmm\01.queue\fifoQueue.c</FilePath>
+            </File>
+            <File>
+              <FileName>fifoQueue.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\02.cmm\01.queue\fifoQueue.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -910,6 +950,11 @@
               <FileName>can_2.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\04.driver\11.can\can_2.h</FilePath>
+            </File>
+            <File>
+              <FileName>usart1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\04.driver\00.usart\usart1.c</FilePath>
             </File>
           </Files>
         </Group>

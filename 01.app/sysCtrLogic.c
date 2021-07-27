@@ -50,6 +50,8 @@ void firewareCtrLed(void){
 		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseLV == true/*相电压欠压,可恢复*/
 		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOC == true/*相电流过流*/
 		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseCShort == true/*相电流短路*/
+		/*-----------------------------------------------------------------------------------------------*/	
+		|| chk_BatIsExitOneWaring() == true
 		){
 		firewareCtr(setFireFalutLed_Label, true);
 		/*
@@ -68,8 +70,9 @@ void firewareCtrLed(void){
 void ctr_RunLed(void){
 	static uint32 itick = 0;
 	static bool flag = false;
+	uint16 baseTime = get_Interface().runLedBaseTime;
 
-	if(TickOut((uint32 *)&itick, 500) == true){
+	if(TickOut((uint32 *)&itick, baseTime) == true){
 		TickOut((uint32 *)&itick, 0);
 		flag = flag == false?true:false;
 		firewareCtr(setFireCtrRunLed_Label, flag);
@@ -182,6 +185,10 @@ void firewareYxInAnalyze(void){
 	** 实时检测一级报警禁止升级
  	*/
  	oneWaring_ForbidUpgrDownFile();
+	/*
+	** 20210302 -- 一级报警中需手动恢复的逻辑--需手动上下电(下电AC)逻辑
+	*/
+	oneWaring_NeedHandRecoverLogic();
 }
 
 /*
@@ -243,7 +250,7 @@ bool checkFirstPageWaring(void){
 		|| sys_ULP->stateInfoChange.sysLogic.comFault != 0/*分控故障*/
 		|| sys_ULP->sysFire.state.bits.interCom == true/*内部失联*/
 		|| hmi_PhaseVc.flag != 0/*过压,欠压,过流*/ 
-		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.anti == true/*防雷故障*/){
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.anti == true/*防雷故障--20210226--不再维护,美团无需求--仅在早期迪文显示版本处理*/){
 		
 		ret = true;
 	}
@@ -252,26 +259,153 @@ bool checkFirstPageWaring(void){
 }
 
 /*
+** 20210129--新增:下载固件过程中发生一级警告,立即结束下载固件
+*/
+void oneWaringHappen_ImmediatelyEndFire(void){
+	/*控制板下载文件参数变量*/
+	UpgrFilePara upgr = getUpgrFilePara();	
+	int16 loc = -1;
+	ComBup comCurBupTemp = getCurComBup();
+
+	if(upgr.upgrFileType.board != 0){/*存在电池,分控固件下载*/
+		memset((uint8*)&upgr.upgrFileType.softVer,0,sizeof(UpgrFilePara)-sizeof(uint8)-sizeof(uint8)-sizeof(DetailedInfo));
+		switch(upgr.upgrFileType.board){
+			case ComBoradType:/*通讯板*/
+				upgr.upgrFileType.board = ComBoradType;
+				set_UpgrBinFilePara(upgr);								
+				break;
+			case BatBoardType:/*电池固件*/
+				upgr.upgrFileType.board = BatBoardType;
+				loc = get_BatLocation(upgr);
+				if(loc != -1){
+					set_UpgrBinFilePara(upgr);					
+				}
+				break;
+		}
+		/*清除升级进程*/
+		/*控制板之参数下载完成之参数已保存*/
+		memset((uint8*)&upgr.upgrFileType.cmdType,0x00,sizeof(UpgrFilePara));
+		setUpgrFilePara(upgr);
+		/*set 恢复上层协议之APP应用层协议标志*/
+		set_CtrBoardTaskRecoverFlag();
+	}
+
+	if(comCurBupTemp.binFileType.flag != 0){
+		Clear_CurComBupPara();	
+		UpgradeLLParam_Init();
+		/*优化李工语音播报:20210227*/
+		sys_ULP->stateInfoChange.sysLogic.comUpgr = 0;
+		sys_ULP->stateInfoChange.sysLogic.comUpgrIsOk = 0;		
+		sys_ULP->stateInfoChange.sysLogic.batFileDownload = 0;
+		sys_ULP->stateInfoChange.sysLogic.batFileDownloadIsOk = 0;	
+		
+	}
+}
+
+/*检测到下电标志结束分控升级和下载固件流程-20210130*/
+void chkCloseAc_EndSubUpgrDownProc(void){
+	ComBup comCurBupTemp = getCurComBup();
+
+	if(sys_ULP->stateInfoChange.sysModuleStateInfo_2.bits.hardSwitchClose == true){
+		if(comCurBupTemp.binFileType.flag != 0){
+			Clear_CurComBupPara();	
+			UpgradeLLParam_Init();
+			/*优化李工语音播报:20210227*/
+			sys_ULP->stateInfoChange.sysLogic.comUpgr = 0;
+			sys_ULP->stateInfoChange.sysLogic.comUpgrIsOk = 0;		
+			sys_ULP->stateInfoChange.sysLogic.batFileDownload = 0;
+			sys_ULP->stateInfoChange.sysLogic.batFileDownloadIsOk = 0;		
+		}
+		/*20210227--充电器升级和电池升级清除标志*/
+		sys_ULP->stateInfoChange.sysLogic.batUpgr = 0;
+		sys_ULP->stateInfoChange.sysLogic.batUpgrIsOk = 0;
+	}
+}
+
+/*
 ** 增加一级报警禁止升级以及下载文件
 */
-bool oneWaringResetSetFlag = false;
 bool oneWaring_ForbidUpgrDownFile(void){
 	bool ret = false;
 	
 	if(sys_ULP->stateInfoChange.sysModuleStateInfo.bits.smoke == true/*烟感*/
 		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.emer == true/*急停*/
 		||  sys_ULP->stateInfoChange.sysModuleStateInfo.bits.chgDoorOverTemp == true /*充电器仓过温*/
-		|| sys_ULP->stateInfoChange.sysLogic.chgOverTemp != 0/*充电器过温*/
+		|| sys_ULP->stateInfoChange.sysLogic.chgOverTemp != 0/*充电器过温--充电器仓*/
 		||  sys_ULP->stateInfoChange.sysLogic.batIsErr != 0 /*电池过温*/
 		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOverVFault == true/*相电压过压>270V,需下电才能恢复*/
 		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOverVWaring == true/*相电压过压可恢复*/
 		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseLV == true/*相电压欠压,可恢复*/
 		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOC == true/*相电流过流*/
-		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseCShort == true/*相电流短路*/){
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseCShort == true/*相电流短路*/
+		/*-----------------------------美团新增:智能充电器(12A)版本V1.03---------------------------------*/
+		|| sys_ULP->stateInfoChange.sysLogic.batChgOTime != 0 /*电池充电时间过长*/
+		/*-----------------------------------------------------------------------------------------------*/
+		|| chk_BatIsExitOneWaring() == true
+		){
 		ret = true;
-		oneWaringResetSetFlag = true;
+		
+		/*
+		** 20210129--新增:下载固件过程中发生一级警告,立即结束下载固件
+		*/
+		oneWaringHappen_ImmediatelyEndFire();
 	}
 	return ret;
+}
+
+/*
+** 新增:整柜一级告警标记判定--20210512
+*/
+bool cabinet_OneWaringFlagJudge(void){
+	bool ret = false;
+
+	if(sys_ULP->stateInfoChange.sysModuleStateInfo.bits.smoke == true/*烟感*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.emer == true/*急停*/
+		||  sys_ULP->stateInfoChange.sysModuleStateInfo.bits.chgDoorOverTemp == true /*充电器仓过温*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOverVFault == true/*相电压过压>270V,需下电才能恢复*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOverVWaring == true/*相电压过压可恢复*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseLV == true/*相电压欠压,可恢复*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOC == true/*相电流过流*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseCShort == true/*相电流短路*/
+	){
+		ret = false;
+	}
+	
+	return ret;
+}
+
+/*
+** 20210302 -- 一级报警中需手动恢复的逻辑--需手动上下电(下电AC)逻辑
+*/
+bool oneWaringResetSetFlag = false;
+void oneWaring_NeedHandRecoverLogic(void){
+	if(sys_ULP->stateInfoChange.sysModuleStateInfo.bits.smoke == true/*烟感*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.emer == true/*急停*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.chgDoorOverTemp == true /*充电器仓过温*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOverVFault == true/*相电压过压>270V,需下电才能恢复*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseOC == true/*相电流过流*/
+		|| sys_ULP->stateInfoChange.sysModuleStateInfo.bits.phaseCShort == true/*相电流短路*/
+	){
+		oneWaringResetSetFlag = true;
+	}
+}
+
+/*
+** 检测AC断开--清相关参数
+*/
+void chkAcClose_ClearParam(void){
+	uint8 i = 0;
+	
+	if(sys_ULP->stateInfoChange.sysModuleStateInfo_2.bits.hardSwitchClose == true){/*AC断开*/
+		for(i=0;i<get_batFireSize();i++){/*清电池固件测试模式*/
+			set_FireEnterTestModel(0x03, false, i);
+		}
+		/*20210425-应李工要求--在下电模式下清除所有升级原因--包含电池/充电器固件*/
+		/*20210518--新增原因存在标志位之后,应李工要求不清楚原因*/
+		//init_UpgrFailPara();
+		/*下市电,清除测试模式--如果在此期间升级主控则无法控制状态*/
+		sys_ULP->stateInfoChange.sysModuleStateInfo_2.bits.testModelFlag = false;
+	}
 }
 
 /*
@@ -286,6 +420,10 @@ void sysCheck(void){
 	** 更新充电器仓过温标志
 	*/
 	updateChgDoorOverTempFlag();	
+	/*检测到下电标志结束分控升级和下载固件流程-20210130*/
+	chkCloseAc_EndSubUpgrDownProc();
+	/*检测AC断开--清相关参数*/
+	chkAcClose_ClearParam();
 }
 
 void SM_SysCtrlLogic_Task(void* p_arg){

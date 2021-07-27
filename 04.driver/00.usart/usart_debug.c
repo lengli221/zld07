@@ -30,7 +30,6 @@ void Usart2_Init(void){
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-// 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
  	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
 	UpperLayer_Rx;
 	GPIO_Init(GPIOG, &GPIO_InitStructure);

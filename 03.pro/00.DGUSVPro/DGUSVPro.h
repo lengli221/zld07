@@ -4,13 +4,8 @@
 /*
 ** 协议参数定义
 */
-//#if DW_GENERATION_SCREEN == DW_ONE_SCREEN
-//#define D_DP_FrameStart1				0xA5		                   		
-//#define D_DP_FrameStart2				0xA5	
-//#elif DW_GENERATION_SCREEN == DW_SECOND_SCREEN
 #define D_DP_FrameStart1				0x5A		                   		
 #define D_DP_FrameStart2				0xA5		                   		
-//#endif
 
 /*
 ** 功能参数说明

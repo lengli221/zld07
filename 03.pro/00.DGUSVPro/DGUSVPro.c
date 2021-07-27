@@ -51,10 +51,7 @@ static bool DP_PackageReadControlFrame(DP_FramePara *pPara, uint8 *pBuf, uint16 
 static bool DP_PackageWriteDataFrame(DP_FramePara *pPara, uint8 *pBuf, uint16 *ucDatalen){/*Ö¸¶¨µØÖ·¿ªÊ¼Ð´ÈëÊý¾Ý´®(×ÖÊý¾Ý)µ½±äÁ¿´æ´¢Æ÷Çø0x82*/
 	uint8 iCount = 0;
 	uint16 crc = 0;
-// 	#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		uint16 tmpAddress = 0;
-// 	#endif
-	
+
 	if ((pPara == null) || (pBuf == null) || (ucDatalen == null)) 
 		return false;
 	/*
@@ -64,22 +61,11 @@ static bool DP_PackageWriteDataFrame(DP_FramePara *pPara, uint8 *pBuf, uint16 *u
 	pBuf[iCount++] = D_DP_FrameStart2;
 	pBuf[iCount++] = pPara->ucRegLen*2 + 5;
 	pBuf[iCount++] = D_DP_DataWirte;
-// 	#if DW_GENERATION_SCREEN == DW_ONE_SCREEN
-		pBuf[iCount++] = pPara->iAddress>>8;
-		pBuf[iCount++] = pPara->iAddress & 0xff;
-		memcpy(pBuf + iCount, pPara->ucDataSpace, pPara->ucRegLen*2);
-		iCount = iCount + pPara->ucRegLen*2;
-// 	#elif DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		tmpAddress = pPara->iAddress;
-// 		if(pPara->iAddress != 0x0084)
-// 		{
-// 			tmpAddress += 0x1000;
-// 		}
-// 		pBuf[iCount++] = tmpAddress>>8;
-// 		pBuf[iCount++] = tmpAddress & 0xff;
-// 		memcpy(pBuf + iCount, pPara->ucDataSpace, pPara->ucRegLen*2);
-// 		iCount = iCount + pPara->ucRegLen*2;
-// 	#endif
+	pBuf[iCount++] = pPara->iAddress>>8;
+	pBuf[iCount++] = pPara->iAddress & 0xff;
+	memcpy(pBuf + iCount, pPara->ucDataSpace, pPara->ucRegLen*2);
+	iCount = iCount + pPara->ucRegLen*2;
+
 	/*¼ÆËãCRC*/
 	crc = CRC16(pBuf+3, iCount-3);
 	/*´ò°üCRC*/
@@ -94,9 +80,6 @@ static bool DP_PackageReadDataFrame(DP_FramePara *pPara, uint8 *pBuf, uint16 *uc
 	/*´ò°ü¶ÁÊý¾Ý*/
 	uint8 iCount = 0;
 	uint16 crc = 0;
-// 	#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		uint16 tmpAddress = 0;
-// 	#endif
 	
 	if ((pPara == null) || (pBuf == null) || (ucDatalen == null)) 
 		return false;
@@ -105,19 +88,9 @@ static bool DP_PackageReadDataFrame(DP_FramePara *pPara, uint8 *pBuf, uint16 *uc
 	pBuf[iCount++] = D_DP_FrameStart2;
 	pBuf[iCount++] = 6;
 	pBuf[iCount++] = D_DP_DataRead;
-// 	#if DW_GENERATION_SCREEN == DW_ONE_SCREEN
-		pBuf[iCount++] = pPara->iAddress >> 8;
-		pBuf[iCount++] = pPara->iAddress & 0xff;
-		pBuf[iCount++] = pPara->ucRegLen;
-// 	#elif DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		tmpAddress = pPara->iAddress;
-// 		if(tmpAddress != 0x0014){
-// 			tmpAddress += 0x1000;
-// 		}
-// 		pBuf[iCount++] = tmpAddress >> 8;
-// 		pBuf[iCount++] = tmpAddress & 0xff;
-// 		pBuf[iCount++] = pPara->ucRegLen;
-// 	#endif
+	pBuf[iCount++] = pPara->iAddress >> 8;
+	pBuf[iCount++] = pPara->iAddress & 0xff;
+	pBuf[iCount++] = pPara->ucRegLen;
 	crc = CRC16(pBuf+3, iCount-3);
 	/*´ò°üCRC*/
 	pBuf[iCount++] = (crc >> 8) & 0xff;
@@ -176,11 +149,7 @@ bool  DP_ParseReadControlFrame(void *pPara, uint8 *pBuf, uint8 ucDatalen){/*¶Á¼Ä
 bool  DP_ParseReadDataFrame(void *pPara, uint8 *pBuf, uint8 ucDatalen){/*¶ÁÊý¾Ý´æ´¢Æ÷µÄDGUSÆÁÓ¦´ð0x83*/
 	uint8 iCount = 0;
 	int16 crc = 0;
-// 	#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		uint16 tmpAddress = 0;
-// 	#endif	
 	DP_FramePara *st_FramePara = (DP_FramePara *)pPara;
-// 	volatile uint8 temp = 0;
 	
 	if (pBuf[iCount++] != D_DP_FrameStart1|| pBuf[iCount++] != D_DP_FrameStart2)
 		return  false;
@@ -189,22 +158,9 @@ bool  DP_ParseReadDataFrame(void *pPara, uint8 *pBuf, uint8 ucDatalen){/*¶ÁÊý¾Ý´
 	if((pBuf[iCount++] != D_DP_DataRead)){
 		return false;
 	}
-
-// 	if(st_FramePara->iAddress == 0x0014){
-// 		temp = 8;
-// 	}
 	
-// 	#if DW_GENERATION_SCREEN == DW_ONE_SCREEN
-		if (pBuf[iCount++] != ((st_FramePara->iAddress >> 8) & 0xFF) || pBuf[iCount++] != (st_FramePara ->iAddress & 0xFF))
-			return false;
-// 	#elif DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		tmpAddress = st_FramePara->iAddress;
-// 		if(tmpAddress != 0x0014){
-// 			tmpAddress += 0x1000;
-// 		}
-// 		if(pBuf[iCount++] != ((tmpAddress >> 8) & 0xFF) || pBuf[iCount++] != (tmpAddress & 0xFF))
-// 			return false;
-// 	#endif
+	if (pBuf[iCount++] != ((st_FramePara->iAddress >> 8) & 0xFF) || pBuf[iCount++] != (st_FramePara ->iAddress & 0xFF))
+		return false;
 	
 	if (pBuf[iCount++] != ((st_FramePara->ucRegLen) & 0xFF))
 			return false;
@@ -212,29 +168,13 @@ bool  DP_ParseReadDataFrame(void *pPara, uint8 *pBuf, uint8 ucDatalen){/*¶ÁÊý¾Ý´
 		return false;
 	}	
 
-// 	#if  DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		DW_SecondScreenAddrAlteration(pPara, GetScreenCurId(), pBuf+iCount);
-// 	#endif
-	
 	crc = CRC16(pBuf+3, (st_FramePara->ucRegLen*2 + 4));
 	if(((crc & 0xFF) != pBuf[st_FramePara->ucRegLen*2 + 8]) ||
 	(((crc >> 8) & 0xFF) != pBuf[st_FramePara->ucRegLen*2 + 7]))
 		return false;
-
-// 	#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		if(st_FramePara->iAddress == 0x0014){
-// 			st_FramePara->ucRegLen = 0x00;
-// 			st_FramePara->iAddress = 0x00;
-// 		}
-// 	#endif
 	
 	/*½âÎöÊý¾ÝÇø*/
-	memcpy(st_FramePara->ucDataSpace, pBuf + 7, st_FramePara->ucRegLen*2);
-
-// 	if(st_FramePara->iAddress == 0x0014){
-// 		temp = 8;
-// 	}
-	
+	memcpy(st_FramePara->ucDataSpace, pBuf + 7, st_FramePara->ucRegLen*2);	
 	return true;
 }
 
@@ -242,27 +182,9 @@ bool  DP_ParseFrame(void *pPara, void *pBuf1, uint16 ucDatalen)
 {
 	DP_FramePara *st_FramePara = (DP_FramePara *)pPara;
 	uint8 * pBuf = pBuf1;
-// 	#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		static uint32 timeout_LCD = 0;
-// 	#endif
 	
 	if ((pPara == null) || (pBuf == null) || (ucDatalen == 0)) 
 		return false;
-
-// 	/*Èô·µ»ØÖ¡¹¦ÄÜÂëºÍÑ¯ÎÊÊ±Ö¸ÁîµÄ²»Ò»ÖÂ£¬ÅÐ¶¨Ê§°Ü*/
-// 	#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-// 		do{
-// 			if(pBuf[3] == D_DP_DataWirte){
-// 				pBuf += 8;/*½â¾ö0x82:±äÁ¿¿Õ¼äµØÖ·,»Ø¸´ÎÊÌâ ÀíÂÛÉÏ:SM_DisposeComUnitÄÚ´æÔÚÅÐ¶ÏÌõ¼þÖ±½Ó·µ»Ø,´®¿Ú3²ÉÓÃ232,½ÓÊÕ¶ÓÁÐÔÚÏÂÒ»´Î½ÓÊÕ½â¾öÊý¾ÝÎÊÌâ*/
-// 				ucDatalen -= 8;/*²ÎÊý8À´Ô´·ÖÎö:Ö¡Í·(2Byte)+Êý¾Ý³¤¶È(1Byte)+Ö¸Áî(1×Ö½Ú)+Êý¾Ý(2Byte:0x4F 0x4B)+CRCÐ£Ñé(2Byte)*/
-// 			}
-// 			if(TickOut(&timeout_LCD,1000)){
-// 				TickOut(&timeout_LCD,0x00);
-// 				Sleep(40);
-// 			}
-// 		}while(pBuf[3] == D_DP_DataWirte);
-// 		TickOut(&timeout_LCD,0x00);
-// 	#endif	
 	
 	if (pBuf[3] != st_FramePara->ucFunCode) 
 		return false;
@@ -274,10 +196,8 @@ bool  DP_ParseFrame(void *pPara, void *pBuf1, uint16 ucDatalen)
 			return DP_ParseReadControlFrame(st_FramePara, pBuf, ucDatalen);
 		case D_DP_DataRead:
 			return DP_ParseReadDataFrame(st_FramePara, pBuf, ucDatalen);
-		//#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN	
 		case D_DP_DataWirte:
 			return true;
-		//#endif
 		default:
 			break;
 	}

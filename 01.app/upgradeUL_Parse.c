@@ -9,6 +9,8 @@ extern UpperLayerPara upperLayerPara;
 */
 UpgradeSysPara upgradeSysPara;
 UpgradeReply upgradeReply;
+/*定义升级接口--默认485接口*/
+uint8 upgrInterface_Label = BSP_ComUpperLayer;
 
 /*
 ** 远程升级之系统参数初始化
@@ -32,6 +34,8 @@ static void UpgradePro_ParaInit(void){
 	** 更新回复参数数据
 	*/
 	upgradeReply.ack = UpgradeFrame_Ack;
+	/*更新上层协议*/
+	upgrInterface_Label = get_Interface().label;
 }
 
 /*
@@ -119,6 +123,11 @@ static void Upgrade_ReplyFrame(void){
 	uint32 len = 0;
 	uint16 crc16=0;
 	UpgradeProFrame upgradeProFrame; 
+
+	/*20210129--发生一级告警立即退出*/
+	if(oneWaring_ForbidUpgrDownFile() == true){
+		upgradeReply.flag = 0xFE;
+	}
 	
 	upgradeProFrame.flag = Frame_Head;
 	upgradeProFrame.addr = upgradeSysPara.firmware.addr;
@@ -135,7 +144,7 @@ static void Upgrade_ReplyFrame(void){
 	memcpy((uint8*)&tx[len],(uint8*)&crc16,sizeof(uint16));
 	len += sizeof(uint16);
 		
-	BSP_SmSend(BSP_ComType_USART, BSP_ComUpperLayer, (uint8 *)&tx[0], (uint16 *)&len);
+	BSP_SmSend(BSP_ComType_USART, upgrInterface_Label/*BSP_ComUpperLayer*/, (uint8 *)&tx[0], (uint16 *)&len);
 }
 
 /*
@@ -246,10 +255,14 @@ static void Upgrade_StartEndCancelFun(void*rx,uint16 dataItemLen){
 					** 更新控制板软件/通讯板软件版本号
 					*/
 					updateSoftVerPara();
-					/*
-					** 更新通讯板升级队列
-					*/
-					update_ComUpgrQueue(upgr);
+
+					if(oneWaring_ForbidUpgrDownFile() == false){
+						/*
+						** 更新通讯板升级队列
+						*/
+						update_ComUpgrQueue(upgr);
+					}
+					
 					/*
 					** 控制板之参数下载完成之参数已保存
 					*/
@@ -431,7 +444,7 @@ void SM_UpgradeULParse_Task(void* p_arg){
 	
 	for(;;){
 		ucRecvLen = 0;
-		BSP_SmRecv(BSP_ComType_USART,BSP_ComUpperLayer,ucRxBuf + ucLen,&ucRecvLen);
+		BSP_SmRecv(BSP_ComType_USART,upgrInterface_Label/*BSP_ComUpperLayer*/,ucRxBuf + ucLen,&ucRecvLen);
 		ucLen += ucRecvLen;
 		if(ucLen >( sizeof(ucRxBuf))){
 			ucLen = 0;

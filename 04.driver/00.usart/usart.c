@@ -84,6 +84,12 @@ bool com_open(int8 port, int32 baud_rate, int32 dataBit, int8 parity, int8 stopB
 ** USART通讯初始化
 */
 void Com_Init(void){
+	/*------------------------初始化串口1参数--------------------------*/
+	Usart1_Init();
+	Usart1_DmaConfig();
+	Usart1_BufferInit();
+	/*-----------------------------------------------------------------*/
+
 	Usart2_Init();
 	Usart2_DmaConfig();
 	Usart2_BufferInit();
@@ -92,12 +98,16 @@ void Com_Init(void){
 	Usart3_DmaConfig();
 	Usart3_BufferInit();
 
+	com_open(BSP_ComUpperLayer_232, 115200, 8, BSP_COM_NO, BSP_COM_STOP1);
 	com_open(BSP_ComUpperLayer, 115200, 8, BSP_COM_NO, BSP_COM_STOP1);
 	com_open(BSP_ComDW_Usart, 115200, 8, BSP_COM_NO, BSP_COM_STOP1); 	
 }
 
 void Com_Write(int8 port, uint8 *buf, int32 len, int32 time_out){
 	switch(port){
+		case BSP_ComUpperLayer_232:/*硬件接口:上层协议232*/
+			Usart1_DmaWrite(buf, len);
+			break;
 		case BSP_ComUpperLayer:/*硬件接口:上层协议*/
 			Usart2_DmaWrite(buf, len);
 			break;
@@ -111,6 +121,8 @@ void Com_Write(int8 port, uint8 *buf, int32 len, int32 time_out){
 
 int32 Com_Read(int8 port, uint8 *buf, int32 len, int32 time_out){
 	switch(port){
+		case BSP_ComUpperLayer_232:/*硬件接口:上层协议232*/
+			return Usart1_Rcv(buf, len);
 		case BSP_ComUpperLayer:	/*硬件接口:上层协议*/
 			return Usart2_Rcv(buf, len);	
 		case BSP_ComDW_Usart:/*硬件接口:迪文屏*/

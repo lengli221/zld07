@@ -17,6 +17,6 @@ uint32 get_UpgrEepromAddr(UpgrFilePara upgr);
 ** 控制策略:
 ** 				用于电池初始化参数获取EEPROM地址
 */
-uint32 get_UpgrBatEepromAddr(uint8 loc);
+uint32 get_UpgrBatEepromAddr(uint8 loc,UpgrFilePara upgr);
 #endif
 

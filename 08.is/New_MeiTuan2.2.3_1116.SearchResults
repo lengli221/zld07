@@ -1,0 +1,4 @@
+---- setFireCtrRunLed_Label Matches (3 in 3 files) ----
+Gpio.c (c:\users\administrator\desktop\01.prj_meituan_pinecone2.2.3_1116\04.driver\04.gpio):		case setFireCtrRunLed_Label:
+Gpio.h (c:\users\administrator\desktop\01.prj_meituan_pinecone2.2.3_1116\04.driver\04.gpio):	setFireCtrRunLed_Label = 0x05,/*Ö÷¿ØÔËÐÐµÆ*/
+sysCtrLogic.c (c:\users\administrator\desktop\01.prj_meituan_pinecone2.2.3_1116\01.app):		firewareCtr(setFireCtrRunLed_Label, flag);

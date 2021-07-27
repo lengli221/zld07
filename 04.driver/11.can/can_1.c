@@ -68,7 +68,7 @@ void CAN1_Cfg_Filter(void){
 	*/
   	CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdMask;
   	CAN_FilterInitStructure.CAN_FilterScale = CAN_FilterScale_32bit;
-  	CAN_FilterInitStructure.CAN_FilterIdHigh =(uint16)(filterDesginTmp.id.id>>16);
+  	CAN_FilterInitStructure.CAN_FilterIdHigh = (uint16)(filterDesginTmp.id.id>>16);
   	CAN_FilterInitStructure.CAN_FilterIdLow = (uint16)(filterDesginTmp.id.id&0x0000FFFF);
   	CAN_FilterInitStructure.CAN_FilterMaskIdHigh = (uint16)(filterDesginTmp.idMask.id>>16);
   	CAN_FilterInitStructure.CAN_FilterMaskIdLow = (uint16)(filterDesginTmp.idMask.id&0x0000FFFF);	

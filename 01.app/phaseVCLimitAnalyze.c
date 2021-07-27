@@ -7,6 +7,27 @@ extern UpperLayerPara upperLayerPara;
 ** 分析相电压/相电流是否存在异常		
 */
 extern bool oneWaringResetSetFlag;
+
+PhaseVCDebugMode phaseVCDebugMode = {0};
+
+/*
+** init Phase VC Debug Mode
+*/
+void init_Phase_VC_Debug_Mode(void){
+	phaseVCDebugMode.flag = false;
+}
+
+/*
+** set Phase VC Debug Mode
+*/ 
+void set_Phase_VC_Debug_Mode(void){
+	phaseVCDebugMode.flag = true;	
+}
+
+/*
+** 用于调试电流参数
+*/
+CalcPhaseVC cpvsRunTime = {0};
 PhaseVCAnalyze get_PhaseVCAnalyze(void){
 	CalcPhaseVC cpvs = get_CalcPhaseVC();
 	static PhaseVCAnalyze  pvca = {0};
@@ -22,7 +43,9 @@ PhaseVCAnalyze get_PhaseVCAnalyze(void){
 	static uint8 phaseOverVFaultRecoverFlag = 0;/*三相电压严重过压恢复标志*/
 	static uint8 phaseLVRecoverFlag = 0;/*三相电压欠压恢复标志*/
 	static uint8 phaseOverVWaringRecoverFlag = 0;/*三相电压过压恢复标志*/
+	#if MaskOCur_ShortFun == 1
 	static uint8 phaseOCRecoverFlag = 0;/*三相电压过流恢复标志*/
+	#endif
 	
 	/*
 	** 软件模拟检测空开是否断开
@@ -50,6 +73,9 @@ PhaseVCAnalyze get_PhaseVCAnalyze(void){
 	}
 	
 	if(TickOut((uint32 *)&itick, 6000) == true){
+		/* 用于调试电流参数*/		
+		cpvsRunTime = get_CalcPhaseVC();
+		
 		/*
 		** 电压状态更新
 		*/	
@@ -228,63 +254,67 @@ PhaseVCAnalyze get_PhaseVCAnalyze(void){
 
 		/*电流状态更新*/	
 		for(i=0;i<3;i++){
-			#if MaskOCur_ShortFun == 1/*清零--屏蔽过流检测*/
-			if(cpvs.abcPC[i] >= /*150**/80*1.414){
-				upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort = true;
-				/*置位--相短路标志*/
-				upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurShort |= (uint16)((uint16)1<<i);
-				/*清检测恢复定时器*/
-				TickOut((uint32 *)&itickPC[i], 0);
-			}else
-			#endif
-			if(cpvs.abcPC[i] >= 50*1.414){
-				#if VerCtr == VerCtr_Normal
-					#if CtrHardware == CtrHardware_Andriod/*注明:过流检测仅针对充电柜,充电架不再更新过流保护值*/
-						#if MaskOCur_ShortFun == 1/*屏蔽过流,充电架充电柜均屏蔽过流检测--201014--赵耀辉现场需求*/
-						pvca.pCur.flag |= (1<<i);
-						hmi_PhaseVc.bits.oc = true;
-						
-						if(upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort == false){/*在短路条件下不检测过流*/
-							/*过流*/
-							upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseOC = true;
-							/*相电流*/
-							upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurO |= (uint16)((uint16)1<<i); 
-							/*清短路标志*/
-							upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort = false;
-							/*清相短路标志*/
-							upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurShort &= ~((uint16)((uint16)1<<i));
-						}
-						/*clear--三相电压过流恢复标志*/
-						phaseOCRecoverFlag = 0;
+			if(phaseVCDebugMode.flag == false){
+				#if MaskOCur_ShortFun == 1/*清零--屏蔽过流检测*/
+				if(cpvs.abcPC[i] >= 80*1.414){
+					upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort = true;
+					/*置位--相短路标志*/
+					upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurShort |= (uint16)((uint16)1<<i);
+					/*清检测恢复定时器*/
+					TickOut((uint32 *)&itickPC[i], 0);
+				}else
+				#endif
+				if(cpvs.abcPC[i] >= 50*1.414){
+					#if VerCtr == VerCtr_Normal
+						#if CtrHardware == CtrHardware_Andriod/*注明:过流检测仅针对充电柜,充电架不再更新过流保护值*/
+							#if MaskOCur_ShortFun == 1/*屏蔽过流,充电架充电柜均屏蔽过流检测--201014--赵耀辉现场需求*/
+							pvca.pCur.flag |= (1<<i);
+							hmi_PhaseVc.bits.oc = true;
+							
+							if(upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort == false){/*在短路条件下不检测过流*/
+								/*过流*/
+								upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseOC = true;
+								/*相电流*/
+								upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurO |= (uint16)((uint16)1<<i); 
+								/*清短路标志*/
+								upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort = false;
+								/*清相短路标志*/
+								upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurShort &= ~((uint16)((uint16)1<<i));
+							}
+							/*clear--三相电压过流恢复标志*/
+							phaseOCRecoverFlag = 0;
+							#endif
 						#endif
 					#endif
-				#endif
-				TickOut((uint32 *)&itickPC[i], 0);
-			}else{
-				if(cpvs.abcPC[i] <= 30*1.414 && TickOut((uint32 *)&itickPC[i], tickTimeBase_V) == true){/*回差和时间限制,防止抖动*/
-					if(upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort == false){
-						pvca.pCur.flag &= ~(1<<i);
-						phaseOCRecoverFlag |= ((uint8)(1<<i));
-						if(phaseOCRecoverFlag == 0x07){
-							phaseOCRecoverFlag = 0;
-							hmi_PhaseVc.bits.oc = false;
-							/*过流恢复*/
-							upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseOC = false;
-						}
-						/*相电流*/
-						upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurO &= ~(1<<i); 
-						/*清短路标志*/
-						upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort = false;	
-						/*清相短路标志*/
-						upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurShort &= ~((uint16)((uint16)1<<i));	
-					}
+					TickOut((uint32 *)&itickPC[i], 0);
 				}else{
-					if(cpvs.abcPC[i] > 32*1.414){/*清定时器预留阈值2A*/
-						TickOut((uint32 *)&itickPC[i], 0);/*新增:20210201--回复时间以恢复到执行标准之后开始计时*/
+					if(cpvs.abcPC[i] <= 30*1.414 && TickOut((uint32 *)&itickPC[i], tickTimeBase_V) == true){/*回差和时间限制,防止抖动*/
+						#if MaskOCur_ShortFun == 1
+						if(upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort == false){
+							pvca.pCur.flag &= ~(1<<i);
+							phaseOCRecoverFlag |= ((uint8)(1<<i));
+							if(phaseOCRecoverFlag == 0x07){
+								phaseOCRecoverFlag = 0;
+								hmi_PhaseVc.bits.oc = false;
+								/*过流恢复*/
+								upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseOC = false;
+							}
+							/*相电流*/
+							upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurO &= ~(1<<i); 
+							/*清短路标志*/
+							upperLayerPara.stateInfoChange.sysModuleStateInfo.bits.phaseCShort = false;	
+							/*清相短路标志*/
+							upperLayerPara.stateInfoChange.sysModuleStateInfo_2.bits.abcPhaseCurShort &= ~((uint16)((uint16)1<<i));	
+						}
+						#endif
+					}else{
+						if(cpvs.abcPC[i] > 32*1.414){/*清定时器预留阈值2A*/
+							TickOut((uint32 *)&itickPC[i], 0);/*新增:20210201--回复时间以恢复到执行标准之后开始计时*/
+						}
 					}
 				}
 			}
-		}	
+		}
 	}
 #endif
 	return pvca;

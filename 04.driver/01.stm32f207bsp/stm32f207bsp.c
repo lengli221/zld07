@@ -6,6 +6,18 @@
 void NVIC_Config(void){
 	NVIC_InitTypeDef NVIC_InitStructure;
 
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x01;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream7_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 4;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
 	NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
@@ -80,6 +92,8 @@ uint32 BspCPUClkFreq(void)
 }
 
 void BspInit(void){
+	/*内部FLASH上锁*/
+	FLASH_Lock();
 	/*
 	** 固件引脚配置
 	*/
@@ -124,14 +138,16 @@ void BspInit(void){
 	** ADC 初始化
 	*/
 	AD_UseInit();
-// 	/*
-// 	** Tim5 初始化
-// 	*/
-// 	init_Time5();
 	/*
 	** 通讯板升级参数初始化
 	*/
 	ComBoardUpgrPara_Init();
+	/*-----------------------变量参数初始化-------------------------------------*/
+	/*
+	** 升级失败原因参数初始化--电池失败原因存在3(FIFOQueue_DepthLimit)级缓存
+	*/
+	init_UpgrFailPara();
+	/*-----------------------------------------------------------------------*/
 	/*
 	** 系统参数初始化
 	*/

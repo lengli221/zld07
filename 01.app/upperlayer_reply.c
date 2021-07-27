@@ -126,6 +126,7 @@ void ULReply_Logout(UpperLayerFrame *ulFreame,uint8* item,uint8 addr){
 */
 void ULReply_StateInfoChange(UpperLayerFrame *ulFreame,uint8* item,uint8 addr){
 	uint16 len = 0;
+	
 	/*
 	** 数据项
 	*/
@@ -143,6 +144,7 @@ void ULReply_StateInfoChange(UpperLayerFrame *ulFreame,uint8* item,uint8 addr){
 */
 void ULReply_StateInfo(UpperLayerFrame *ulFreame,uint8* item,uint8 addr){
 	uint16 len = 0;
+	DoorEUResonNoRead resonTemp = {0};
 
 	/*
 	** 数据项 
@@ -159,6 +161,12 @@ void ULReply_StateInfo(UpperLayerFrame *ulFreame,uint8* item,uint8 addr){
 	*/
 	memcpy((uint8*)&item[len],(uint8*)&ulr_SysPara->batFireSize,sizeof(uint16));
 	len += sizeof(uint16);
+	/*
+	** 充电原因标志位
+	*/
+	resonTemp = get_DoorEUResonNoRead();
+	memcpy((uint8*)&item[len],(uint8*)&resonTemp.bat,sizeof(DoorEUResonNoRead));
+	len += sizeof(DoorEUResonNoRead);
 	/*
 	** 数据项长度
 	*/
@@ -280,6 +288,10 @@ void ULReply_BmsInfo(UpperLayerFrame *ulFreame,uint8* item,uint8 addr){
 			len += sizeof(uint8);	
 			item[len] = ul_LLParse->batDoor[addr].bmsInfoMeiTuan.mosState.flag;
 			len += sizeof(uint8);	
+			/*-------------------美团:美团助力车-主控_电池通信协议1.15.pdf----------------------*/
+			memcpy((uint8*)&item[len],(uint8*)&ul_LLParse->batDoor[addr].bmsInfoMeiTuan.batMTV115.materialChangeR,sizeof(BatMeiTuanV115));
+			len += sizeof(BatMeiTuanV115);
+			/*----------------------------------------------------------------------------------*/
 		}
 	}
 	/*
@@ -488,6 +500,7 @@ void SM_UpperLayerReply_Task(void* p_arg){
 	uint8 txbuf[256] = {0};
 	UpperLayerFrame ulFrameTmp = {0};
 	uint8 i = 0;
+	uint8 interface_Label = get_Interface().label;
 
 	/*
 	** 上层协议之回复变量初始化
@@ -506,7 +519,7 @@ void SM_UpperLayerReply_Task(void* p_arg){
 						(uint8*)&txItem[0],smCmd.doorAddr);
 					UL_PackectReplyFun((UpperLayerFrame *)&ulFrameTmp, 
 						(uint8 *)&txItem[0], (uint8 *)&txbuf[0]);
-					BSP_SmSend(BSP_ComType_USART, BSP_ComUpperLayer, 
+					BSP_SmSend(BSP_ComType_USART, interface_Label, 
 						(void *)&txbuf[0], (uint16 *)&ulFrameTmp.msgFrameLen);
 					memset((uint8*)&smCmd.refresh,0x00,sizeof(SmCmd));
 					break;

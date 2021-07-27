@@ -20,7 +20,14 @@ bool checkFirstPageWaring(void);
 ** 增加一级报警禁止升级以及下载文件
 */
 bool oneWaring_ForbidUpgrDownFile(void);
-
+/*
+** 新增:整柜一级告警标记判定--20210512
+*/
+bool cabinet_OneWaringFlagJudge(void);
+/*
+** 20210302 -- 一级报警中需手动恢复的逻辑--需手动上下电(下电AC)逻辑
+*/
+void oneWaring_NeedHandRecoverLogic(void);
 /*
 **提供系统软件创建系统控制接口函数
 */

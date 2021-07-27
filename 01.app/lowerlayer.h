@@ -22,6 +22,10 @@
 #define LL_FunId_ChgSysInfo							(uint8)0x03
 #define LL_FunId_BmsInfo								(uint8)0x80
 
+/*
+** 充电器/电池升级失败原因
+*/
+#define LL_FunId_upgrFailReason						(uint8)0x06
 
 /*
 ** 限制内存对齐
@@ -49,7 +53,7 @@ typedef union{
 		uint16 sysErrCloseAC:1;/*系统故障断充电器AC*/
 		uint16 comIdRep:1;/*通讯板ID重复*/
 		uint16 batTrans:1;/*电池反接--更改为电池故障*/
-		uint16 bmsErr:1;/*BMS板烧毁,电池故障*/
+		uint16 bmsErr:1;/*BMS板烧毁,电池故障--20210309--电池通讯故障*/
 		uint16 batUpgrIsFinsh:1;/*电池升级中*/
 		uint16 batUpgrIsOk:1;/*电池是否升级成功*/
 		uint16 comIsFault:1;/*分控故障*/
@@ -73,9 +77,13 @@ typedef struct{
 typedef union{
 	uint16 flag;
 	struct{
-		uint16 res:16;
+		uint16 res0:2;/*保留*/
+		uint16 batChgOT:1;/*电池充电高温*/
+		uint16 res1:3;/*保留*/
+		uint16 batChgOC:1;/*电池充电过流*/
+		uint16 res2:9;/*保留*/
 	}bits;
-}PState;
+}PState;/*电池--保护状态*/
 
 typedef union{
 	uint8 flag;
@@ -90,6 +98,20 @@ typedef union{
 		uint8 res:8;
 	}bits;
 }MosState;
+
+/*-------------------美团:美团助力车-主控_电池通信协议1.15.pdf----------------------*/	
+typedef struct{
+	uint8 materialChangeR;/*物料变更记录*/
+	uint8 batCoreNum;/*电芯数*/
+	uint8 fcc[4];/*fcc*/	
+	uint8 realitySoc;/*真实SOC*/
+	uint8 batChargestate;/*电池充电状态*/
+	uint8 batInnerR[4];/*电池内阻*/
+	uint8 banlanceState[2];/*均衡管状态*/
+	uint8 resetNum[4];/*复位状态*/
+	uint8 chgStopReason[4];/*充电停止原因*/
+}BatMeiTuanV115;/*字节数:22 Byte*/
+/*----------------------------------------------------------------------------------*/
 
 typedef struct{
 	uint16 realVol;/*实时电压*/
@@ -120,7 +142,10 @@ typedef struct{
 	uint16 hardVer;/*硬件版本*/
 	uint16 softVer;/*软件版本*/
 	uint16 designCap;/*设计容量*/
-	uint8 batType;/*电池型号*/
+	uint8 batType;/*电池型号*//*--字节数:*/
+	/*-------------------美团:美团助力车-主控_电池通信协议1.15.pdf----------------------*/
+	BatMeiTuanV115 batMTV115;
+	/*----------------------------------------------------------------------------------*/
 }BmsInfoMeiTuan;
 #endif
 
@@ -156,6 +181,21 @@ typedef struct{
 	ComBoardChk comBoardChk[SysCtr_AllDoorNum];
 	BatDoor batDoor[SysCtr_AllDoorNum];
 }LowerLayerParam;
+
+/*
+** 20210512--仓位状态信息
+*/
+typedef union{
+	uint8 flag;
+	struct{
+		uint8 batOnline:1;/*电池在线*/
+		uint8 subExitUpgr:1;/*分控退出下载/升级*/
+		uint8 idle:1;/*空仓*/
+		uint8 ing:1;/*充电中*/
+		uint8 full:1;/*满仓*/
+		uint8 res:3;/*保留*/
+	}bits;
+}LPare03_01;/*功能码03之电池状态信息*/
 #pragma pack()
 
 /*
@@ -171,6 +211,14 @@ typedef struct{
 ** 下层协议之参数接口提供调用
 */
 LowerLayerParam* getLowerLayerParaPtr(void);
+/*
+** 20210422--新增:电池一级告警==充电过流/充电高温
+*/
+bool chk_BatIsExitOneWaring(void);
+/*
+** 新增:20210115--张工测试需求 分控请求升级 -- 在充电器过温,电池过温(整柜中任意仓存在--拒绝升级)
+*/
+bool chk_IsExitBatChargerOT(void);
 /*
 **提供系统软件创建下层协议解析接口函数
 */

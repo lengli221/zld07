@@ -1,8 +1,6 @@
 #ifndef __LCDDATA_DW_H_
 #define __LCDDATA_DW_H_
 
-
-//#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
 /*
 ** II迪文屏页面控制
 */
@@ -12,7 +10,6 @@
 #define LCD_ADDR_Len_ReadId						(uint8)(1)
 #define LCD_ADDR_WriteVoice							(uint16)(0x00A0)
 #define LCD_ADDR_Len_WriteVoice					(uint8)(2)
-//#endif
 
 
 /*
@@ -22,31 +19,6 @@
 **			1.II代迪文屏底层已处理好,偏移地址:0x1000
 **			2.地址编写设置余量
 */
-// #define LCD_Addr_WriteMainState								(uint16)(0x0000)/*主页面状态地址*/
-// #define LCD_Addr_WriteMainGroup0Icon						(uint16)(0x1100)/*主页面图标+电压参数地址*/
-// #define LCD_Addr_WriteMainGroup1Icon						(uint16)(0x1200)
-// #define LCD_Addr_WriteMainGroup2Icon						(uint16)(0x1300)
-// #define LCD_Addr_WriteMainGroup3Icon						(uint16)(0x1400)
-// #define LCD_Addr_WriteMainGroup4Icon						(uint16)(0x1500)
-// #define LCD_Addr_WriteMainGroup5Icon						(uint16)(0x1600)
-// #define LCD_Addr_JumpBatInfo								(uint16)(0x0500)/*读/写电池信息跳转参数*/
-// #define LCD_Addr_JumpInputPW								(uint16)(0x0510)/*读/写跳转至密码输入页面*/
-// #define LCD_Addr_WriteBatInfoBaseAddr					(uint16)(0x0700)/*写电池页面信息*/
-// #define LCD_Addr_WriteBatWorkStateAddr					(uint16)(0x0800)
-// #define LCD_Addr_WriteBatRunStateAddr					(uint16)(0x0900)
-// #define LCD_Addr_WriteBatVolAddr							(uint16)(0x0A00)
-// #define LCD_Addr_WriteBatRefAddr							(uint16)(0x0B00)
-// #define LCD_Addr_WriteFirstWaringAddr						(uint16)(0x0C00)
-// #define LCD_Addr_WriteShowPwAddr							(uint16)(0x0D00)/*写密码显示控件*/
-// #define LCD_ADDR_UpdatePwInputAddr						(uint16)(0x0D10)/*更新密码输入控件*/
-// #define LCD_ADDR_UpdateOkBtnAddr						(uint16)(0x0D40)/*更新密码按键控件*/
-
-// #define LCD_Addr_RegisterInfoAddr							(uint16)(0x1A00)/*注册地址信息*/
-// #define LCD_Addr_LogoutInfoAddr								(uint16)(0x1A10)/*注销地址信息*/
-
-// #define LCD_ADDR_DomainNameLocal						(uint16)(0x2000)/*本地域名*/
-// #define LCD_ADDR_DomainNameRemote						(uint16)(0x2100)/*远程域名*/
-
 #define LCD_Addr_WriteMainState								(uint16)(0x1000)/*主页面状态地址*/
 #define LCD_Addr_WriteMainGroup0Icon						(uint16)(0x2100)/*主页面图标+电压参数地址*/
 #define LCD_Addr_WriteMainGroup1Icon						(uint16)(0x2200)
@@ -208,17 +180,6 @@ bool LCD_SetScreenID(uint16 screenId);
 ** 获取设置页面ID参数
 */
 void LCD_GetScreenIdSet(uint8*pdata);
-//#if DW_GENERATION_SCREEN == DW_SECOND_SCREEN
-///*
-//** 获取迪文屏当前ID
-//*/
-//uint8* GetScreenCurId(void);
-///*
-//** II代迪文屏地址变更
-//*/
-//void DW_SecondScreenAddrAlteration(void *pPara,uint8 *Dst,uint8 *Src);
-//#endif
-
 /*
 ** 设置页面跳转参数
 */

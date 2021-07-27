@@ -40,8 +40,11 @@ extern void UpgradeLLParse_FileByteItemCrc(uint8 len,uint8* item,uint8 addr);
 /*
 ** 升级之文件内容
 */
-void UpgradeLLParse_FileItem(uint8 len,uint8* item,uint8 addr);
-
+extern void UpgradeLLParse_FileItem(uint8 len,uint8* item,uint8 addr);
+/*
+** upgr Fail Reason
+*/
+extern void LLParse_UpgrFailReason(uint8 rxlen,uint8* item,uint8 addr);
 /*
 ** 下层协议之数据解析
 */
@@ -54,7 +57,8 @@ static const LowerUpgrFunTable lowerUpgrFunTable[] = {
 	{UpgradeLL_FunId_RunArea,UpgradeLLParse_ChkComRunArea},
 	{UpgradeLL_FunId_Ver,UpgradeLLParse_FileVer},
 	{UpgradeLL_FunId_FileByteCrc,UpgradeLLParse_FileByteItemCrc},
-	{UpgradeLL_FunId_FileItem,UpgradeLLParse_FileItem}
+	{UpgradeLL_FunId_FileItem,UpgradeLLParse_FileItem},
+	{LL_FunId_upgrFailReason,LLParse_UpgrFailReason}
 };
 static uint8 lowerUpgrFunTableNum = sizeof(lowerUpgrFunTable)/sizeof(LowerUpgrFunTable);
 
